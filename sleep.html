@@ -1,0 +1,1367 @@
+<!-- Version: v1.0.0 -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熄灯打卡</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== 亮色主题（白天）===== */
+  :root {
+    --bg-primary:    #f5f7fa;
+    --bg-secondary:  #edf0f5;
+    --bg-card:       #ffffff;
+    --text-primary:  #1e2d40;
+    --text-secondary:#7a8fa6;
+    --accent-early:  #2ecc8f;
+    --accent-ok:     #f0a030;
+    --accent-late:   #f05c6a;
+    --accent-blue:   #3d8ef8;
+    --border:        #dde3ec;
+    --radius:        18px;
+    --shadow:        0 4px 18px rgba(61,142,248,.08);
+    --dot-outline:   #f5f7fa;
+    --grid-line:     rgba(61,142,248,.12);
+    --canvas-bg:     #edf2fb;
+    --btn-hover:     #e4ebf8;
+  }
+
+  /* ===== 暗色主题（夜晚）===== */
+  [data-theme="dark"] {
+    --bg-primary:    #0b1120;
+    --bg-secondary:  #131d2e;
+    --bg-card:       #1a2438;
+    --text-primary:  #e4eaf4;
+    --text-secondary:#6b849e;
+    --accent-early:  #3dd68c;
+    --accent-ok:     #f5b942;
+    --accent-late:   #f06070;
+    --accent-blue:   #4fa3f7;
+    --border:        #243045;
+    --shadow:        0 4px 18px rgba(0,0,0,.4);
+    --dot-outline:   #0b1120;
+    --grid-line:     rgba(255,255,255,.06);
+    --canvas-bg:     #131d2e;
+    --btn-hover:     #1f2f45;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', system-ui, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 16px 16px 32px;
+    transition: background .3s, color .3s;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ===== 标题栏 ===== */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 4px 14px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: .5px;
+  }
+  .theme-toggle {
+    width: 52px;
+    height: 28px;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    position: relative;
+    transition: background .3s, border-color .3s;
+    flex-shrink: 0;
+  }
+  .theme-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: transform .3s, background .3s;
+    line-height: 1;
+  }
+  [data-theme="dark"] .theme-toggle-knob {
+    transform: translateX(24px);
+  }
+
+  /* ===== 卡片 ===== */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
+    transition: background .3s, border-color .3s, box-shadow .3s;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 12px;
+  }
+
+  /* ===== 设置区 ===== */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .settings-row:last-child { margin-bottom: 0; }
+  .settings-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  .settings-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+  .badge-early { background: rgba(52,199,123,.15); color: var(--accent-early); }
+  .badge-late  { background: rgba(240,92,114,.15);  color: var(--accent-late); }
+  .time-input {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    padding: 6px 10px;
+    width: 92px;
+    text-align: center;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .time-input:focus { border-color: var(--accent-blue); }
+
+  /* ===== 日历 ===== */
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cal-title {
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .cal-nav {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .cal-nav:hover { background: var(--btn-hover); }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .cal-weekday {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    font-weight: 700;
+  }
+  .cal-day {
+    border-radius: 12px;
+    padding: 5px 2px;
+    text-align: center;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    min-height: 46px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .cal-day:hover { background: var(--btn-hover); transform: scale(1.06); }
+  .cal-day.empty { cursor: default; }
+  .cal-day.empty:hover { background: none; transform: none; }
+  .cal-day-num {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .cal-day-time {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .cal-day.today .cal-day-num {
+    background: var(--accent-blue);
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cal-day.color-early { background: rgba(52,199,123,.12); }
+  .cal-day.color-ok    { background: rgba(245,158,11,.12); }
+  .cal-day.color-late  { background: rgba(240,92,114,.12); }
+  .cal-day.color-early .cal-day-time { color: var(--accent-early); }
+  .cal-day.color-ok    .cal-day-time { color: var(--accent-ok); }
+  .cal-day.color-late  .cal-day-time { color: var(--accent-late); }
+  .cal-day.color-early:hover { background: rgba(52,199,123,.2); }
+  .cal-day.color-ok:hover    { background: rgba(245,158,11,.2); }
+  .cal-day.color-late:hover  { background: rgba(240,92,114,.2); }
+
+  /* ===== 打卡按钮 ===== */
+  .checkin-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0 4px;
+  }
+  .checkin-btn {
+    width: 136px;
+    height: 136px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-blue);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: all .2s;
+    box-shadow: 0 0 0 6px rgba(155,111,245,.08), var(--shadow);
+  }
+  .checkin-btn:hover {
+    background: var(--btn-hover);
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(155,111,245,.12), var(--shadow);
+  }
+  .checkin-btn:active { transform: scale(.96); }
+  .checkin-btn .moon { font-size: 32px; line-height: 1; }
+  .checkin-btn.done {
+    border-color: var(--accent-early);
+    background: rgba(52,199,123,.08);
+    box-shadow: 0 0 0 6px rgba(52,199,123,.10), var(--shadow);
+  }
+  .checkin-btn.done:hover {
+    box-shadow: 0 0 0 10px rgba(52,199,123,.15), var(--shadow);
+  }
+  .checkin-status {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-height: 20px;
+  }
+  .checkin-status.done { color: var(--accent-early); }
+
+  /* ===== Tabs ===== */
+  .tab-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 700;
+    padding: 4px 13px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+  }
+
+  /* ===== 趋势图 ===== */
+  #trendCanvas {
+    width: 100%;
+    border-radius: 12px;
+    background: var(--canvas-bg);
+    display: block;
+    transition: background .3s;
+  }
+
+  /* ===== 统计 ===== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .stat-toolbar .tab-row {
+    margin-bottom: 0;
+    flex: 1;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  .stat-toolbar .tab-btn { flex-shrink: 0; }
+  .stat-total-badge {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 132px;
+    padding: 0;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .stat-total-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+    letter-spacing: .02em;
+  }
+  .stat-total-value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-secondary);
+    letter-spacing: 0;
+  }
+  .stat-total-value strong {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text-primary);
+    letter-spacing: -.03em;
+  }
+  .stat-item {
+    background: var(--bg-secondary);
+    border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+    border-radius: 20px;
+    padding: 16px 16px 15px;
+    text-align: left;
+    transition: background .3s, border-color .3s, transform .18s ease;
+    min-height: 116px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 2px 8px rgba(25, 45, 80, .04);
+  }
+  .stat-item.full { grid-column: 1 / -1; }
+  .stat-item.emphasis {
+    min-height: 112px;
+    padding: 16px 18px;
+    justify-content: center;
+  }
+  .stat-item.early {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-early) 12%, var(--bg-secondary)) 0%, var(--bg-secondary) 100%);
+  }
+  .stat-item.late {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-late) 12%, var(--bg-secondary)) 0%, var(--bg-secondary) 100%);
+  }
+  .stat-item.ok {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-ok) 14%, var(--bg-secondary)) 0%, var(--bg-secondary) 100%);
+  }
+  .stat-item.info {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-blue) 10%, var(--bg-secondary)) 0%, var(--bg-secondary) 100%);
+  }
+  .stat-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .stat-kicker {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    color: var(--text-secondary);
+  }
+  .stat-chip {
+    min-width: fit-content;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: color-mix(in srgb, var(--text-primary) 72%, var(--text-secondary));
+    background: rgba(255,255,255,.58);
+    border: 1px solid rgba(255,255,255,.42);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  [data-theme="dark"] .stat-chip {
+    color: rgba(237,243,252,.92);
+    background: rgba(148, 163, 184, .16);
+    border-color: rgba(148, 163, 184, .32);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .stat-val {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 2px;
+    line-height: 1;
+    letter-spacing: -.02em;
+  }
+  .stat-val.big { font-size: 34px; }
+  .stat-lbl {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .stat-sub {
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .stat-meta {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .stat-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .stat-summary-block {
+    padding: 2px 0;
+  }
+  .stat-summary-block + .stat-summary-block {
+    border-left: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+    padding-left: 12px;
+  }
+  .stat-summary-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .stat-summary-value {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -.03em;
+  }
+  .color-early { color: var(--accent-early); }
+  .color-late  { color: var(--accent-late); }
+  .color-ok    { color: var(--accent-ok); }
+  .color-blue  { color: var(--accent-blue); }
+
+  /* ===== 数据管理 ===== */
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mgmt-btn {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 700;
+    padding: 11px 8px;
+    cursor: pointer;
+    transition: background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .mgmt-btn:hover { background: var(--btn-hover); }
+  .mgmt-btn.danger { color: var(--accent-late); }
+  .mgmt-btn.danger:hover { background: rgba(240,92,114,.1); border-color: var(--accent-late); }
+
+  /* ===== Modal ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 26px;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  }
+  .modal h3 {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .modal-body { margin-bottom: 20px; }
+  .modal-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-family: inherit;
+    font-weight: 700;
+    padding: 11px 14px;
+    outline: none;
+    text-align: center;
+    letter-spacing: 3px;
+    transition: border-color .15s;
+  }
+  .modal-input:focus { border-color: var(--accent-blue); }
+  .modal-footer {
+    display: flex;
+    gap: 8px;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, transform .1s;
+  }
+  .modal-btn:hover { opacity: .88; }
+  .modal-btn:active { transform: scale(.97); }
+  .btn-primary   { background: var(--accent-blue); color: #fff; }
+  .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1.5px solid var(--border); }
+  .btn-danger    { background: var(--accent-late);  color: #fff; }
+
+  /* ===== Toast ===== */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 999;
+    box-shadow: 0 6px 24px rgba(0,0,0,.2);
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ===== 图例 ===== */
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 标题 -->
+  <div class="header">
+    <h1>💤 熄灯打卡</h1>
+    <button type="button" class="theme-toggle" id="themeToggle" title="切换白天/夜晚">
+      <div class="theme-toggle-knob" id="themeKnob">☀️</div>
+    </button>
+  </div>
+
+  <!-- 时间设定 -->
+  <div class="card">
+    <div class="card-title">⏰ 时间设定</div>
+    <div class="settings-row">
+      <span class="settings-label">早睡时间</span>
+      <span class="settings-badge badge-early">绿</span>
+      <span style="font-size:12px;color:var(--text-secondary);font-weight:600">早于</span>
+      <input type="time" class="time-input" id="earlyInput" title="早睡时间" aria-label="早睡时间">
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">熬夜时间</span>
+      <span class="settings-badge badge-late">红</span>
+      <span style="font-size:12px;color:var(--text-secondary);font-weight:600">晚于</span>
+      <input type="time" class="time-input" id="lateInput" title="熬夜时间" aria-label="熬夜时间">
+    </div>
+  </div>
+
+  <!-- 日历 -->
+  <div class="card">
+    <div class="cal-header">
+      <button type="button" class="cal-nav" id="prevMonth" aria-label="上个月">&#8249;</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button type="button" class="cal-nav" id="nextMonth" aria-label="下个月">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent-early)"></div>早睡</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent-ok)"></div>一般</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent-late)"></div>熬夜</div>
+    </div>
+  </div>
+
+  <!-- 打卡按钮 -->
+  <div class="card">
+    <div class="checkin-area">
+      <button type="button" class="checkin-btn" id="checkinBtn">
+        <span class="moon">🌙</span>
+        <span id="checkinBtnText">熄灯打卡</span>
+      </button>
+      <div class="checkin-status" id="checkinStatus"></div>
+    </div>
+  </div>
+
+  <!-- 趋势图 -->
+  <div class="card">
+    <div class="card-title">📈 趋势</div>
+    <div class="tab-row" id="trendTabs">
+      <button type="button" class="tab-btn active" data-days="7">7天</button>
+      <button type="button" class="tab-btn" data-days="14">14天</button>
+      <button type="button" class="tab-btn" data-days="30">30天</button>
+      <button type="button" class="tab-btn" data-days="0">全部</button>
+    </div>
+    <canvas id="trendCanvas" height="160"></canvas>
+  </div>
+
+  <!-- 统计 -->
+  <div class="card">
+    <div class="card-title">📊 统计</div>
+    <div class="stat-toolbar">
+      <div class="tab-row" id="statTabs">
+        <button type="button" class="tab-btn active" data-period="week">本周</button>
+        <button type="button" class="tab-btn" data-period="month">本月</button>
+        <button type="button" class="tab-btn" data-period="year">年度</button>
+      </div>
+      <div class="stat-total-badge">
+        <div class="stat-total-label">总打卡</div>
+        <div class="stat-total-value" id="statTotalDays"><strong>0</strong> 天</div>
+      </div>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+  </div>
+
+  <!-- 数据管理 -->
+  <div class="card">
+    <div class="card-title">🗂 数据管理</div>
+    <div class="btn-row">
+      <button type="button" class="mgmt-btn" onclick="exportJSON()">📤 导出 JSON</button>
+      <button type="button" class="mgmt-btn" onclick="exportCSV()">📊 导出 CSV</button>
+      <button type="button" class="mgmt-btn" onclick="document.getElementById('importFile').click()">📥 导入数据</button>
+      <button type="button" class="mgmt-btn danger" onclick="clearDataConfirm()">🗑️ 清除数据</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+
+</div>
+
+<!-- Modal：补录/修改 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3 id="editModalTitle">编辑记录</h3>
+    <div class="modal-body">
+      <div class="modal-label">熄灯时间（24小时制）</div>
+      <input type="time" class="modal-input" id="editTimeInput" title="熄灯时间" aria-label="熄灯时间">
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+      <button type="button" class="modal-btn btn-danger" id="deleteRecordBtn" onclick="deleteRecord()">删除</button>
+      <button type="button" class="modal-btn btn-primary" onclick="saveRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal：二次确认清除 -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal">
+    <h3>确认清除 🗑️</h3>
+    <div class="modal-body" style="color:var(--text-secondary);font-size:14px;line-height:1.7;font-weight:600">
+      确定要清除所有数据吗？<br>此操作<strong style="color:var(--accent-late)">不可恢复</strong>。
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn btn-secondary" onclick="closeModal('clearModal')">取消</button>
+      <button type="button" class="modal-btn btn-danger" onclick="clearData()">确认清除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ==================== 数据层 ====================
+const STORAGE_KEY  = 'sleepTracker_v1';
+const THEME_KEY    = 'sleepTracker_theme';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { settings: { earlyTime: '23:00', lateTime: '00:30' }, records: [] };
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+}
+
+let appData = loadData();
+
+// ==================== 主题切换 ====================
+const html  = document.documentElement;
+const knob  = document.getElementById('themeKnob');
+
+function applyTheme(theme, redraw = true) {
+  html.setAttribute('data-theme', theme);
+  knob.textContent = theme === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem(THEME_KEY, theme);
+  // 重绘 canvas（颜色随主题变化），初始化时跳过（变量尚未声明）
+  if (redraw) renderTrend();
+}
+
+// 初始主题：读取偏好，默认 dark（不触发 renderTrend，等 renderAll 统一处理）
+const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+applyTheme(savedTheme, false);
+
+document.getElementById('themeToggle').onclick = () => {
+  const current = html.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+};
+
+// ==================== 工具函数 ====================
+function timeToMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(mins) {
+  mins = ((mins % 1440) + 1440) % 1440;
+  return `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+}
+
+function formatPercent(value, total) {
+  if (!total) return '--';
+  return `${Math.round((value / total) * 100)}%`;
+}
+
+function getOwnerDate(now = new Date()) {
+  const d = new Date(now);
+  if (d.getHours() < 8) d.setDate(d.getDate() - 1);
+  return dateStr(d);
+}
+
+function dateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getColorClass(time) {
+  const { earlyTime, lateTime } = appData.settings;
+  const normalize = m => m < 480 ? m + 1440 : m;
+  const tN = normalize(timeToMins(time));
+  const eN = normalize(timeToMins(earlyTime));
+  const lN = normalize(timeToMins(lateTime));
+  if (tN <= eN) return 'color-early';
+  if (tN >  lN) return 'color-late';
+  return 'color-ok';
+}
+
+function getRecord(date) {
+  return appData.records.find(r => r.date === date) || null;
+}
+
+// 读取 CSS 变量
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function renderVersion() {
+  const el = document.getElementById('versionNote');
+  if (!el) return;
+  el.textContent = `当前版本 v${APP_VERSION}`;
+}
+
+// ==================== 设置 ====================
+const earlyInput = document.getElementById('earlyInput');
+const lateInput  = document.getElementById('lateInput');
+
+function initSettings() {
+  earlyInput.value = appData.settings.earlyTime;
+  lateInput.value  = appData.settings.lateTime;
+}
+
+earlyInput.addEventListener('change', () => {
+  appData.settings.earlyTime = earlyInput.value;
+  saveData(); renderAll();
+});
+lateInput.addEventListener('change', () => {
+  appData.settings.lateTime = lateInput.value;
+  saveData(); renderAll();
+});
+
+// ==================== 日历 ====================
+let calYear, calMonth;
+
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+}
+
+function renderCalendar() {
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const today = dateStr(new Date());
+  const grid  = document.getElementById('calGrid');
+  document.getElementById('calTitle').textContent = `${calYear}年${calMonth+1}月`;
+
+  const firstDay    = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  let html = weekdays.map(w => `<div class="cal-weekday">${w}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const rec = getRecord(ds);
+    let cls   = 'cal-day' + (ds === today ? ' today' : '') + (rec ? ` ${getColorClass(rec.time)}` : '');
+    html += `<div class="${cls}" onclick="openEditModal('${ds}')">
+      <span class="cal-day-num">${d}</span>
+      ${rec ? `<span class="cal-day-time">${rec.time}</span>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+document.getElementById('prevMonth').onclick = () => {
+  if (--calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+};
+document.getElementById('nextMonth').onclick = () => {
+  if (++calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+};
+
+// ==================== 打卡 ====================
+function renderCheckin() {
+  const ownerDate = getOwnerDate();
+  const rec = getRecord(ownerDate);
+  const btn = document.getElementById('checkinBtn');
+  const statusEl = document.getElementById('checkinStatus');
+  document.getElementById('checkinBtnText').textContent = rec ? '更新打卡' : '熄灯打卡';
+  if (rec) {
+    btn.classList.add('done');
+    statusEl.textContent = `今日已打卡 ${rec.time} ✓`;
+    statusEl.className = 'checkin-status done';
+  } else {
+    btn.classList.remove('done');
+    statusEl.textContent = '';
+    statusEl.className = 'checkin-status';
+  }
+}
+
+document.getElementById('checkinBtn').onclick = () => {
+  const now = new Date();
+  const ownerDate = getOwnerDate(now);
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const idx = appData.records.findIndex(r => r.date === ownerDate);
+  if (idx >= 0) {
+    appData.records[idx].time = time;
+    appData.records[idx].editedAt = null;
+  } else {
+    appData.records.push({ date: ownerDate, time, editedAt: null });
+  }
+  saveData(); renderAll();
+  showToast(`🌙 打卡成功 ${time}`);
+};
+
+// ==================== 补录 Modal ====================
+let editingDate = null;
+
+function openEditModal(date) {
+  editingDate = date;
+  const rec = getRecord(date);
+  const [y, m, d] = date.split('-');
+  document.getElementById('editModalTitle').textContent = `${y}年${m}月${d}日`;
+  document.getElementById('editTimeInput').value = rec ? rec.time : '';
+  document.getElementById('deleteRecordBtn').style.display = rec ? '' : 'none';
+  openModal('editModal');
+}
+
+function saveRecord() {
+  const val = document.getElementById('editTimeInput').value;
+  if (!val) { showToast('请输入时间'); return; }
+  const idx = appData.records.findIndex(r => r.date === editingDate);
+  const now = new Date().toISOString();
+  if (idx >= 0) {
+    appData.records[idx].time = val;
+    appData.records[idx].editedAt = now;
+  } else {
+    appData.records.push({ date: editingDate, time: val, editedAt: now });
+  }
+  saveData(); renderAll();
+  closeModal('editModal');
+  showToast('✅ 记录已保存');
+}
+
+function deleteRecord() {
+  const idx = appData.records.findIndex(r => r.date === editingDate);
+  if (idx >= 0) {
+    appData.records.splice(idx, 1);
+    saveData(); renderAll();
+    closeModal('editModal');
+    showToast('🗑️ 记录已删除');
+  }
+}
+
+// ==================== 趋势图 ====================
+let trendDays = 7;
+
+document.getElementById('trendTabs').onclick = (e) => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#trendTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  trendDays = parseInt(btn.dataset.days);
+  renderTrend();
+};
+
+function getTrendRecords() {
+  const sorted = [...appData.records].sort((a, b) => a.date.localeCompare(b.date));
+  if (trendDays === 0) return sorted;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - trendDays);
+  return sorted.filter(r => r.date >= dateStr(cutoff));
+}
+
+function renderTrend() {
+  const canvas = document.getElementById('trendCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const records = getTrendRecords();
+  const activeIndex = Number.isInteger(canvas._activeIndex) ? canvas._activeIndex : null;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth || 400;
+  const H   = 160;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const labelColor = cssVar('--text-secondary');
+  const gridColor  = cssVar('--grid-line');
+  const accentBlue = cssVar('--accent-blue');
+  const dotOutline = cssVar('--dot-outline');
+
+  if (records.length < 2) {
+    ctx.fillStyle = labelColor;
+    ctx.font = '700 13px Nunito, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(records.length === 0 ? '\u6682\u65e0\u6570\u636e' : '\u81f3\u5c11\u9700\u8981 2 \u6761\u8bb0\u5f55', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 16, right: 16, bottom: 28, left: 50 };
+  const innerW = W - pad.left - pad.right;
+  const innerH = H - pad.top - pad.bottom;
+  const norm = m => m < 480 ? m + 1440 : m;
+  const mins = records.map(r => norm(timeToMins(r.time)));
+
+  let minM = Math.min(...mins), maxM = Math.max(...mins);
+  if (maxM - minM < 60) { minM -= 30; maxM += 30; }
+  minM -= 15; maxM += 15;
+
+  const toX = i => pad.left + (i / (records.length - 1)) * innerW;
+  const toY = m => pad.top + innerH - ((m - minM) / (maxM - minM)) * innerH;
+
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const m = minM + (maxM - minM) * i / 4;
+    const y = toY(m);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+    ctx.fillStyle = labelColor;
+    ctx.font = '600 10px Nunito, system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(minsToTime(((Math.round(m) % 1440) + 1440) % 1440), pad.left - 4, y + 4);
+  }
+
+  ctx.beginPath();
+  ctx.strokeStyle = accentBlue;
+  ctx.lineWidth = 2.25;
+  ctx.lineJoin = 'round';
+  records.forEach((r, i) => {
+    const x = toX(i);
+    const y = toY(mins[i]);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  if (activeIndex !== null && activeIndex >= 0 && activeIndex < records.length) {
+    const activeRecord = records[activeIndex];
+    const activeX = toX(activeIndex);
+    const activeY = toY(mins[activeIndex]);
+    const guideColor = accentBlue.replace(')', ', 0.22)').replace('rgb', 'rgba');
+    const cls = getColorClass(activeRecord.time);
+    const color = cls === 'color-early' ? cssVar('--accent-early') :
+                  cls === 'color-late'  ? cssVar('--accent-late')  : cssVar('--accent-ok');
+
+    ctx.strokeStyle = guideColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(activeX, pad.top);
+    ctx.lineTo(activeX, H - pad.bottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pad.left, activeY);
+    ctx.lineTo(W - pad.right, activeY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    ctx.arc(activeX, activeY, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = dotOutline;
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+
+    const tipText = activeRecord.date.slice(5) + '  ' + activeRecord.time;
+    ctx.font = '700 10px Nunito, system-ui, sans-serif';
+    const tipW = Math.max(74, ctx.measureText(tipText).width + 14);
+    const tipH = 22;
+    const tipX = Math.min(Math.max(activeX - tipW / 2, pad.left), W - pad.right - tipW);
+    const tipY = activeY > pad.top + 28 ? activeY - tipH - 10 : activeY + 10;
+
+    ctx.fillStyle = cssVar('--bg-card');
+    ctx.strokeStyle = cssVar('--border');
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(tipX, tipY, tipW, tipH, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = labelColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(tipText, tipX + tipW / 2, tipY + 14);
+  }
+
+  ctx.fillStyle = labelColor;
+  ctx.font = '600 10px Nunito, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(records.length / 5));
+  records.forEach((r, i) => {
+    if (i % step === 0 || i === records.length - 1) {
+      ctx.fillText(r.date.slice(5), toX(i), H - 4);
+    }
+  });
+}
+
+function setTrendActiveFromClientX(clientX) {
+  const canvas = document.getElementById('trendCanvas');
+  const records = getTrendRecords();
+  if (!canvas || records.length < 2) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const left = 50;
+  const right = rect.width - 16;
+  const clampedX = Math.min(Math.max(clientX - rect.left, left), right);
+  const ratio = (clampedX - left) / Math.max(1, right - left);
+  canvas._activeIndex = Math.round(ratio * (records.length - 1));
+  renderTrend();
+}
+
+function clearTrendActive() {
+  const canvas = document.getElementById('trendCanvas');
+  if (!canvas) return;
+  canvas._activeIndex = null;
+  renderTrend();
+}
+
+const trendCanvas = document.getElementById('trendCanvas');
+trendCanvas.addEventListener('mousemove', (e) => setTrendActiveFromClientX(e.clientX));
+trendCanvas.addEventListener('mouseleave', clearTrendActive);
+trendCanvas.addEventListener('touchstart', (e) => {
+  if (e.touches[0]) setTrendActiveFromClientX(e.touches[0].clientX);
+}, { passive: true });
+trendCanvas.addEventListener('touchmove', (e) => {
+  if (e.touches[0]) setTrendActiveFromClientX(e.touches[0].clientX);
+}, { passive: true });
+trendCanvas.addEventListener('touchend', clearTrendActive);
+
+let statPeriod = 'week';
+
+document.getElementById('statTabs').onclick = (e) => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#statTabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  statPeriod = btn.dataset.period;
+  renderStats();
+};
+
+function getStatRecords() {
+  const now = new Date();
+  let start;
+  if (statPeriod === 'week') {
+    const day = now.getDay() || 7;
+    start = new Date(now); start.setDate(now.getDate() - day + 1); start.setHours(0,0,0,0);
+  } else if (statPeriod === 'month') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else {
+    start = new Date(now.getFullYear(), 0, 1);
+  }
+  return appData.records.filter(r => r.date >= dateStr(start));
+}
+
+function renderStats() {
+  const records = getStatRecords();
+  let earlyDays = 0, lateDays = 0, okDays = 0, totalMins = 0;
+  const norm = m => m < 480 ? m + 1440 : m;
+  const normalizedTimes = [];
+
+  records.forEach(r => {
+    const cls = getColorClass(r.time);
+    if (cls === 'color-early') earlyDays++;
+    else if (cls === 'color-late') lateDays++;
+    else okDays++;
+
+    const normalized = norm(timeToMins(r.time));
+    normalizedTimes.push(normalized);
+    totalMins += normalized;
+  });
+
+  const totalDays = records.length;
+  const avgStr = totalDays
+    ? minsToTime(((Math.round(totalMins / records.length) % 1440) + 1440) % 1440)
+    : '--:--';
+  const earliestStr = totalDays ? minsToTime(Math.min(...normalizedTimes)) : '--:--';
+  const latestStr = totalDays ? minsToTime(Math.max(...normalizedTimes)) : '--:--';
+  document.getElementById('statTotalDays').innerHTML = `<strong>${totalDays}</strong> 天`;
+
+  document.getElementById('statGrid').innerHTML =
+    '<div class="stat-item early">' +
+      '<div class="stat-head">' +
+        '<div class="stat-kicker">早睡</div>' +
+        '<div class="stat-chip">占比 ' + formatPercent(earlyDays, totalDays) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="stat-val big color-early">' + earlyDays + '<span style="font-size:14px"> 天</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stat-item late">' +
+      '<div class="stat-head">' +
+        '<div class="stat-kicker">熬夜</div>' +
+        '<div class="stat-chip">占比 ' + formatPercent(lateDays, totalDays) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="stat-val big color-late">' + lateDays + '<span style="font-size:14px"> 天</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stat-item ok">' +
+      '<div class="stat-head">' +
+        '<div class="stat-kicker">一般</div>' +
+        '<div class="stat-chip">占比 ' + formatPercent(okDays, totalDays) + '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="stat-val big color-ok">' + okDays + '<span style="font-size:14px"> 天</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stat-item info">' +
+      '<div class="stat-head">' +
+        '<div class="stat-kicker">平均入睡</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="stat-val big color-blue">' + avgStr + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="stat-item full emphasis">' +
+      '<div class="stat-summary">' +
+        '<div class="stat-summary-block">' +
+          '<div class="stat-summary-label">最早入睡</div>' +
+          '<div class="stat-summary-value">' + earliestStr + '</div>' +
+        '</div>' +
+        '<div class="stat-summary-block">' +
+          '<div class="stat-summary-label">最晚入睡</div>' +
+          '<div class="stat-summary-value">' + latestStr + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+// ==================== 数据管理 ====================
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `sleep_backup_${dateStr(new Date())}.json`);
+  showToast('📤 已导出 JSON');
+}
+
+function exportCSV() {
+  const rows = ['日期,时间,补录时间'];
+  [...appData.records].sort((a,b) => a.date.localeCompare(b.date))
+    .forEach(r => rows.push(`${r.date},${r.time},${r.editedAt||''}`));
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, `sleep_${dateStr(new Date())}.csv`);
+  showToast('📊 已导出 CSV');
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.records || !Array.isArray(data.records)) throw new Error();
+      appData = data;
+      if (!appData.settings) appData.settings = { earlyTime: '23:00', lateTime: '00:30' };
+      saveData(); initSettings(); renderAll();
+      showToast(`📥 已导入 ${data.records.length} 条记录`);
+    } catch { showToast('❌ 文件格式错误'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function clearDataConfirm() { openModal('clearModal'); }
+
+function clearData() {
+  appData.records = [];
+  saveData(); renderAll();
+  closeModal('clearModal');
+  showToast('🗑️ 数据已清除');
+}
+
+// ==================== Modal ====================
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+// ==================== Toast ====================
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ==================== 渲染入口 ====================
+function renderVersion() {
+  const el = document.getElementById('versionNote');
+  if (!el) return;
+  el.textContent = `当前版本 v${window.APP_VERSION || '1.0.0'}`;
+}
+
+function renderAll() {
+  renderCalendar();
+  renderCheckin();
+  renderTrend();
+  renderStats();
+}
+
+// ==================== 初始化 ====================
+initSettings();
+initCalendar();
+renderAll();
+window.addEventListener('resize', renderTrend);
+</script>
+</body>
+</html>
