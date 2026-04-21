@@ -1,1 +1,16 @@
 .claude/
+
+# 依赖
+node_modules/
+
+# IDE
+.idea/
+
+# Android 构建产物
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+android/app/release/
